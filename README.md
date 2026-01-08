@@ -1,50 +1,65 @@
-# Welcome to your Expo app 👋
+# ZenPulse — AI Meditation App (Prototype)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Прототип мобильного приложения для медитаций с paywall-механикой и AI-фичей генерации аффирмаций.
 
-## Get started
+Проект выполнен в рамках тестового задания.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## 🧘‍♂️ Основная идея
 
-2. Start the app
+ZenPulse — это минималистичное приложение для ежедневных практик осознанности:
+- часть контента доступна бесплатно
+- часть — только после подписки
+- есть vibe-фича с генерацией короткого текста под настроение пользователя
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## ✨ Реализованные экраны
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 1. Paywall (экран подписки)
+- Выбор тарифа: **Месячный / Годовой**
+- Отображение преимуществ Premium
+- Кнопка **«Попробовать бесплатно»** (имитация триала)
+- Мок бизнес-логики подписки (без реальных покупок)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### 2. Meditations (экран практик)
+- Список медитаций
+- Логика блокировки:
+  - первые 3 — бесплатные
+  - последние 3 — доступны только Premium
+- Заблокированные карточки ведут обратно на Paywall
 
-## Get a fresh project
+### 3. Vibe-фича «AI Настрой дня»
+- Выбор настроения (🙂 / 😐 / 😔)
+- Генерация короткой аффирмации
+- Используется **реалистичный mock LLM-ответ** на основе промпта
 
-When you're ready, run:
+---
+
+## 🧠 AI / LLM логика
+
+Фича реализована через:
+- генерацию текстового промпта
+- локальный mock-ответ (без реального API)
+- детерминированный результат для одинакового промпта
+
+Это позволяет легко заменить mock на реальный LLM (OpenAI / Claude / Gemini).
+
+---
+
+## 🛠 Технологии
+
+- **React Native**
+- **Expo**
+- **TypeScript**
+- **Expo Go / Android Emulator**
+- Inline styles (без внешних UI-китов — осознанный MVP-подход)
+
+---
+
+## ▶️ Запуск проекта
 
 ```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+npm install
+npx expo start
