@@ -22,24 +22,33 @@ type Meditation = {
   isFree: boolean;
 };
 
+// ✅ ВАЖНО: массив должен существовать в этом файле, иначе MEDITATIONS будет красным
+const MEDITATIONS: Meditation[] = [
+  { id: "m1", title: "Дыхание и мягкий старт", minutes: 5, isFree: true },
+  { id: "m2", title: "Сканирование тела", minutes: 8, isFree: true },
+  { id: "m3", title: "Фокус на одном объекте", minutes: 10, isFree: true },
+  { id: "m4", title: "Ум как небо", minutes: 15, isFree: false },
+  { id: "m5", title: "Глубокое расслабление", minutes: 18, isFree: false },
+  { id: "m6", title: "Осознанность", minutes: 9, isFree: false },
+];
+
 export default function ZenPulsePrototype() {
   /**
-   * Важно (как вы описали сейчас):
+   * Важно:
    * - isSubscribed = "покупка прошла"
-   * - по кнопке «Попробовать бесплатно» мы просто открываем экран с карточками,
+   * - по кнопке «Попробовать бесплатно» просто открываем экран с карточками,
    *   но покупка НЕ считается прошедшей => isSubscribed остаётся false
    */
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [screen, setScreen] = useState<Screen>("paywall");
 
   const openMeditationsAsTrial = () => {
-    // Покупка не прошла => флаг НЕ меняем
     setScreen("meditations");
   };
 
   const goToPaywall = () => setScreen("paywall");
 
-  // (Опционально для теста MVP) — если захотите проверить "разблокировку" вручную:
+  // (Опционально для теста MVP)
   const devActivatePurchase = () => setIsSubscribed(true);
   const devResetPurchase = () => setIsSubscribed(false);
 
@@ -47,12 +56,12 @@ export default function ZenPulsePrototype() {
     <PaywallScreen
       isSubscribed={isSubscribed}
       onTryFree={openMeditationsAsTrial}
-      // маленькие dev-кнопки можно убрать, но они помогают проверить логику
       onDevActivate={devActivatePurchase}
       onDevReset={devResetPurchase}
     />
   ) : (
-    <MeditationsScreen isSubscribed={isSubscribed} onOpenPaywall={goToPaywall} />
+    // ✅ FIX: правильное имя пропса
+    <MeditationsScreen isSubscribed={isSubscribed} onLockedPress={goToPaywall} />
   );
 }
 
@@ -408,93 +417,329 @@ const pw = {
  *  ========================= */
 function MeditationsScreen({
   isSubscribed,
-  onOpenPaywall,
+  onLockedPress,
 }: {
   isSubscribed: boolean;
-  onOpenPaywall: () => void;
+  onLockedPress: () => void;
 }) {
   const { width } = useWindowDimensions();
   const isSmall = width < 360;
   const horizontalPadding = isSmall ? 18 : 22;
 
-  // РОВНО 3 карточки должны быть серыми при isSubscribed = false:
-  // - "Ум как небо"
-  // - "Глубокое расслабление"
-  // - "Осознанность"
-  const meditations: Meditation[] = useMemo(
-    () => [
-      { id: "m1", title: "Дыхание и мягкий старт", minutes: 5, isFree: true },
-      { id: "m2", title: "Сканирование тела", minutes: 8, isFree: true },
-      { id: "m3", title: "Фокус на одном объекте", minutes: 10, isFree: true },
+  const ms = {
+    safe: { flex: 1, backgroundColor: "#070A0E" as const },
+    statusBarSpacer: {
+      height: Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0,
+      backgroundColor: "#070A0E",
+    },
+    scroll: { flex: 1 },
+    container: { flexGrow: 1, paddingTop: 18 },
 
-      { id: "m4", title: "Ум как небо", minutes: 15, isFree: false },
-      { id: "m5", title: "Глубокое расслабление", minutes: 18, isFree: false },
-      { id: "m6", title: "Осознанность", minutes: 9, isFree: false },
-    ],
-    []
-  );
+    bgGlowTop: {
+      position: "absolute" as const,
+      top: -160,
+      right: -130,
+      width: 340,
+      height: 340,
+      borderRadius: 340,
+      backgroundColor: "rgba(120, 190, 255, 0.10)",
+    },
+    bgGlowBottom: {
+      position: "absolute" as const,
+      bottom: -210,
+      left: -170,
+      width: 420,
+      height: 420,
+      borderRadius: 420,
+      backgroundColor: "rgba(160, 120, 255, 0.07)",
+    },
+
+    topBar: { flexDirection: "row" as const, alignItems: "flex-start" as const, gap: 12 },
+    title: { color: "rgba(255,255,255,0.92)", fontWeight: "800" as const, letterSpacing: 0.2 },
+    subtitle: { marginTop: 8, color: "rgba(255,255,255,0.60)", lineHeight: 19, fontSize: 13.5 },
+
+    chip: {
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.12)",
+      backgroundColor: "rgba(255,255,255,0.05)",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      marginTop: 2,
+    },
+    chipText: { color: "rgba(255,255,255,0.78)", fontWeight: "700" as const, fontSize: 12.5 },
+
+    vibeCard: {
+      marginTop: 14,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.10)",
+      backgroundColor: "rgba(255,255,255,0.03)",
+      borderRadius: 18,
+      padding: 16,
+    },
+    vibeTitle: { color: "rgba(255,255,255,0.88)", fontWeight: "800" as const, fontSize: 15 },
+    vibeHint: { marginTop: 6, color: "rgba(255,255,255,0.58)", fontSize: 12.5, lineHeight: 18 },
+
+    moodRow: { flexDirection: "row" as const, gap: 10, marginTop: 12 },
+    moodBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.10)",
+      backgroundColor: "rgba(255,255,255,0.02)",
+      borderRadius: 14,
+      paddingVertical: 10,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    moodBtnSelected: {
+      borderColor: "rgba(170, 220, 255, 0.35)",
+      backgroundColor: "rgba(170, 220, 255, 0.10)",
+    },
+    moodText: { fontSize: 18 },
+
+    vibeCta: {
+      marginTop: 12,
+      borderWidth: 1,
+      borderColor: "rgba(170, 220, 255, 0.35)",
+      backgroundColor: "rgba(170, 220, 255, 0.12)",
+      borderRadius: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    vibeCtaText: {
+      color: "rgba(255,255,255,0.92)",
+      fontWeight: "900" as const,
+      fontSize: 14.5,
+      letterSpacing: 0.2,
+    },
+
+    vibeOutput: {
+      marginTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: "rgba(255,255,255,0.08)",
+      paddingTop: 12,
+    },
+    vibeOutputLabel: { color: "rgba(255,255,255,0.62)", fontSize: 12, fontWeight: "700" as const },
+    vibeOutputText: { marginTop: 6, color: "rgba(255,255,255,0.88)", fontSize: 13.5, lineHeight: 20 },
+
+    sectionTitle: { marginTop: 0, color: "rgba(255,255,255,0.82)", fontWeight: "800" as const, fontSize: 14 },
+
+    card: {
+      borderWidth: 1,
+      borderRadius: 18,
+      padding: 16,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 12,
+    },
+    cardUnlocked: { borderColor: "rgba(255,255,255,0.10)", backgroundColor: "rgba(255,255,255,0.035)" },
+    cardLocked: { borderColor: "rgba(255,255,255,0.06)", backgroundColor: "rgba(255,255,255,0.018)" },
+
+    cardTitle: { color: "rgba(255,255,255,0.88)", fontWeight: "700" as const, fontSize: 15, letterSpacing: 0.1 },
+    cardTitleLocked: { color: "rgba(255,255,255,0.46)" },
+    cardMeta: { marginTop: 6, color: "rgba(255,255,255,0.60)", fontSize: 12.5 },
+    cardMetaLocked: { color: "rgba(255,255,255,0.40)" },
+
+    lockPill: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.10)",
+      backgroundColor: "rgba(255,255,255,0.02)",
+    },
+    lockIcon: { fontSize: 13 },
+    lockLabel: { color: "rgba(255,255,255,0.55)", fontWeight: "700" as const, fontSize: 12 },
+
+    playPill: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "rgba(170, 220, 255, 0.25)",
+      backgroundColor: "rgba(170, 220, 255, 0.10)",
+    },
+    playIcon: { color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: -1 },
+    playLabel: { color: "rgba(255,255,255,0.85)", fontWeight: "800" as const, fontSize: 12 },
+
+    primaryCta: {
+      marginTop: 18,
+      borderWidth: 1,
+      borderColor: "rgba(170, 220, 255, 0.35)",
+      backgroundColor: "rgba(170, 220, 255, 0.12)",
+      borderRadius: 18,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      alignItems: "center" as const,
+      shadowColor: "#000",
+      shadowOpacity: 0.35,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 8,
+    },
+    primaryCtaText: { color: "rgba(255,255,255,0.92)", fontWeight: "900" as const, fontSize: 15, letterSpacing: 0.2 },
+    primaryCtaSub: { marginTop: 6, color: "rgba(255,255,255,0.55)", fontSize: 12 },
+  };
+
+  // ---- AI Настрой дня ----
+  type Mood = "🙂" | "😐" | "😔";
+  const [mood, setMood] = useState<Mood>("🙂");
+  const [aiText, setAiText] = useState("");
+
+  const buildPrompt = (selectedMood: Mood) => {
+    const moodHint =
+      selectedMood === "🙂"
+        ? "спокойное и приподнятое"
+        : selectedMood === "😐"
+        ? "нейтральное и немного рассеянное"
+        : "уставшее или грустное, нуждается в поддержке";
+
+    return [
+      "Ты — ассистент по осознанности в приложении ZenPulse.",
+      "Сгенерируй короткую аффирмацию на русском (1–2 предложения).",
+      "Стиль: спокойный, премиальный, минималистичный. Без восклицаний.",
+      `Настроение пользователя: ${selectedMood} (${moodHint}).`,
+    ].join(" ");
+  };
+
+  const hashString = (s: string) => {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return h;
+  };
+
+  const mockLLMResponse = (prompt: string, selectedMood: Mood) => {
+    const bank: Record<Mood, string[]> = {
+      "🙂": [
+        "Сохрани это ясное спокойствие и сделай один небольшой шаг с полным вниманием.",
+        "Сегодня достаточно идти мягко и уверенно — вернись к дыханию и продолжай.",
+      ],
+      "😐": [
+        "Сделай паузу на один вдох и выбери одну простую задачу — начни без давления.",
+        "Ничего не нужно доказывать: отметь ощущения в теле и продолжай спокойно.",
+      ],
+      "😔": [
+        "Будь бережен к себе: вдохни медленно и отпусти напряжение на выдохе.",
+        "Сейчас достаточно одного тихого шага — ты можешь опереться на дыхание.",
+      ],
+    };
+
+    const idx = Math.abs(hashString(prompt)) % bank[selectedMood].length;
+    return bank[selectedMood][idx];
+  };
+
+  const onGenerateVibe = () => {
+    const prompt = buildPrompt(mood);
+    setAiText(mockLLMResponse(prompt, mood));
+  };
+
+  // ---- Locked logic: ровно m4–m6, если нет покупки ----
+  const lockedIds = useMemo(() => new Set<string>(["m4", "m5", "m6"]), []);
 
   const onPressMeditation = (m: Meditation) => {
-    const locked = !m.isFree && !isSubscribed;
-    if (locked) {
-      onOpenPaywall(); // по ТЗ: серые карточки ведут обратно на Paywall
-      return;
-    }
-    // MVP: позже откроется плеер/сессия
+    const locked = !isSubscribed && lockedIds.has(m.id);
+    if (locked) return onLockedPress();
+    // MVP: позже откроется плеер
   };
 
   return (
-    <SafeAreaView style={md.safe}>
-      <View style={md.statusBarSpacer} />
+    <SafeAreaView style={ms.safe}>
+      <View style={ms.statusBarSpacer} />
 
       <ScrollView
-        style={md.scroll}
-        contentContainerStyle={[md.container, { paddingHorizontal: horizontalPadding, paddingBottom: 28 }]}
+        style={ms.scroll}
+        contentContainerStyle={[ms.container, { paddingHorizontal: horizontalPadding, paddingBottom: 28 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View pointerEvents="none" style={md.bgGlowTop} />
-        <View pointerEvents="none" style={md.bgGlowBottom} />
+        <View pointerEvents="none" style={ms.bgGlowTop} />
+        <View pointerEvents="none" style={ms.bgGlowBottom} />
 
-        {/* Header + back to paywall */}
-        <View style={md.topBar}>
-          <Pressable
-            onPress={onOpenPaywall}
-            hitSlop={10}
-            style={({ pressed }) => [md.backBtn, { opacity: pressed ? 0.7 : 1 }]}
-          >
-            <Text style={md.backText}>←</Text>
-          </Pressable>
-
+        <View style={ms.topBar}>
           <View style={{ flex: 1 }}>
-            <Text style={[md.title, { fontSize: isSmall ? 22 : 24 }]}>Медитации</Text>
-            <Text style={md.subtitle}>
-              {isSubscribed ? "Premium куплен — всё доступно" : "Некоторые сессии заблокированы до покупки"}
+            <Text style={[ms.title, { fontSize: isSmall ? 22 : 24 }]}>Медитации</Text>
+            <Text style={ms.subtitle}>
+              {isSubscribed ? "Premium куплен — все сессии доступны" : "Часть сессий заблокирована до покупки Premium"}
             </Text>
           </View>
 
+          {!isSubscribed ? (
+            <Pressable
+              onPress={onLockedPress}
+              hitSlop={10}
+              style={({ pressed }) => [ms.chip, { opacity: pressed ? 0.75 : 1 }]}
+            >
+              <Text style={ms.chipText}>Paywall</Text>
+            </Pressable>
+          ) : (
+            <View style={[ms.chip, { borderColor: "rgba(170, 220, 255, 0.22)" }]}>
+              <Text style={ms.chipText}>Premium</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={ms.vibeCard}>
+          <Text style={ms.vibeTitle}>AI Настрой дня</Text>
+          <Text style={ms.vibeHint}>Выберите настроение и сгенерируйте короткую аффирмацию.</Text>
+
+          <View style={ms.moodRow}>
+            {(["🙂", "😐", "😔"] as Mood[]).map((emoji) => {
+              const selected = mood === emoji;
+              return (
+                <Pressable
+                  key={emoji}
+                  onPress={() => setMood(emoji)}
+                  style={({ pressed }) => [
+                    ms.moodBtn,
+                    selected && ms.moodBtnSelected,
+                    { opacity: pressed ? 0.85 : 1 },
+                  ]}
+                >
+                  <Text style={ms.moodText}>{emoji}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
           <Pressable
-            onPress={onOpenPaywall}
-            hitSlop={10}
-            style={({ pressed }) => [md.chip, { opacity: pressed ? 0.75 : 1 }]}
+            onPress={onGenerateVibe}
+            style={({ pressed }) => [
+              ms.vibeCta,
+              { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.995 : 1 }] },
+            ]}
           >
-            <Text style={md.chipText}>Paywall</Text>
+            <Text style={ms.vibeCtaText}>Сгенерировать настрой</Text>
           </Pressable>
+
+          {aiText ? (
+            <View style={ms.vibeOutput}>
+              <Text style={ms.vibeOutputLabel}>Результат</Text>
+              <Text style={ms.vibeOutputText}>{aiText}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={{ marginTop: 16 }}>
-          <Text style={md.sectionTitle}>Подборка</Text>
+          <Text style={ms.sectionTitle}>Подборка</Text>
 
           <View style={{ marginTop: 12 }}>
-            {meditations.map((m, idx) => {
-              const locked = !m.isFree && !isSubscribed;
+            {MEDITATIONS.map((m, idx) => {
+              const locked = !isSubscribed && lockedIds.has(m.id);
 
               return (
                 <Pressable
                   key={m.id}
                   onPress={() => onPressMeditation(m)}
                   style={({ pressed }) => [
-                    md.card,
-                    locked ? md.cardLocked : md.cardUnlocked,
+                    ms.card,
+                    locked ? ms.cardLocked : ms.cardUnlocked,
                     {
                       opacity: pressed ? 0.95 : 1,
                       transform: [{ scale: pressed ? 0.99 : 1 }],
@@ -503,23 +748,21 @@ function MeditationsScreen({
                   ]}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[md.cardTitle, locked && md.cardTitleLocked]} numberOfLines={1}>
+                    <Text style={[ms.cardTitle, locked && ms.cardTitleLocked]} numberOfLines={1}>
                       {m.title}
                     </Text>
-                    <Text style={[md.cardMeta, locked && md.cardMetaLocked]}>
-                      {m.minutes} мин • {m.isFree ? "Бесплатно" : "Premium"}
-                    </Text>
+                    <Text style={[ms.cardMeta, locked && ms.cardMetaLocked]}>{m.minutes} мин</Text>
                   </View>
 
                   {locked ? (
-                    <View style={md.lockPill}>
-                      <Text style={md.lockIcon}>🔒</Text>
-                      <Text style={md.lockLabel}>Заблокировано</Text>
+                    <View style={ms.lockPill}>
+                      <Text style={ms.lockIcon}>🔒</Text>
+                      <Text style={ms.lockLabel}>Закрыто</Text>
                     </View>
                   ) : (
-                    <View style={md.playPill}>
-                      <Text style={md.playIcon}>▶</Text>
-                      <Text style={md.playLabel}>Старт</Text>
+                    <View style={ms.playPill}>
+                      <Text style={ms.playIcon}>▶</Text>
+                      <Text style={ms.playLabel}>Старт</Text>
                     </View>
                   )}
                 </Pressable>
@@ -529,143 +772,15 @@ function MeditationsScreen({
         </View>
 
         {!isSubscribed ? (
-          <View style={{ marginTop: 18 }}>
-            <Pressable
-              onPress={onOpenPaywall}
-              style={({ pressed }) => [md.primaryCta, { opacity: pressed ? 0.9 : 1 }]}
-            >
-              <Text style={md.primaryCtaText}>Перейти к выбору подписки</Text>
-              <Text style={md.primaryCtaSub}>Заблокированные карточки тоже ведут туда</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={onLockedPress}
+            style={({ pressed }) => [ms.primaryCta, { opacity: pressed ? 0.9 : 1 }]}
+          >
+            <Text style={ms.primaryCtaText}>Перейти к выбору подписки</Text>
+            <Text style={ms.primaryCtaSub}>Заблокированные карточки ведут на Paywall</Text>
+          </Pressable>
         ) : null}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const md = {
-  safe: { flex: 1, backgroundColor: "#070A0E" },
-  statusBarSpacer: {
-    height: Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0,
-    backgroundColor: "#070A0E",
-  },
-  scroll: { flex: 1 },
-  container: { flexGrow: 1, paddingTop: 18 },
-
-  bgGlowTop: {
-    position: "absolute" as const,
-    top: -160,
-    right: -130,
-    width: 340,
-    height: 340,
-    borderRadius: 340,
-    backgroundColor: "rgba(120, 190, 255, 0.10)",
-  },
-  bgGlowBottom: {
-    position: "absolute" as const,
-    bottom: -210,
-    left: -170,
-    width: 420,
-    height: 420,
-    borderRadius: 420,
-    backgroundColor: "rgba(160, 120, 255, 0.07)",
-  },
-
-  topBar: { flexDirection: "row" as const, alignItems: "flex-start" as const, gap: 12 },
-
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    marginTop: 2,
-  },
-  backText: { color: "rgba(255,255,255,0.75)", fontWeight: "800" as const, fontSize: 16 },
-
-  title: { color: "rgba(255,255,255,0.92)", fontWeight: "800" as const, letterSpacing: 0.2 },
-  subtitle: { marginTop: 8, color: "rgba(255,255,255,0.60)", lineHeight: 19, fontSize: 13.5 },
-
-  chip: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    marginTop: 2,
-  },
-  chipText: { color: "rgba(255,255,255,0.78)", fontWeight: "700" as const, fontSize: 12.5 },
-
-  sectionTitle: { color: "rgba(255,255,255,0.82)", fontWeight: "700" as const, letterSpacing: 0.2, fontSize: 14 },
-
-  card: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
-  },
-  cardUnlocked: { borderColor: "rgba(255,255,255,0.10)", backgroundColor: "rgba(255,255,255,0.035)" },
-
-  // Серые карточки (locked)
-  cardLocked: {
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.018)",
-  },
-
-  cardTitle: { color: "rgba(255,255,255,0.88)", fontWeight: "700" as const, fontSize: 15, letterSpacing: 0.1 },
-  cardTitleLocked: { color: "rgba(255,255,255,0.46)" },
-  cardMeta: { marginTop: 6, color: "rgba(255,255,255,0.60)", fontSize: 12.5 },
-  cardMetaLocked: { color: "rgba(255,255,255,0.40)" },
-
-  lockPill: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    backgroundColor: "rgba(255,255,255,0.02)",
-  },
-  lockIcon: { fontSize: 13 },
-  lockLabel: { color: "rgba(255,255,255,0.55)", fontWeight: "700" as const, fontSize: 12 },
-
-  playPill: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(170, 220, 255, 0.25)",
-    backgroundColor: "rgba(170, 220, 255, 0.10)",
-  },
-  playIcon: { color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: -1 },
-  playLabel: { color: "rgba(255,255,255,0.85)", fontWeight: "800" as const, fontSize: 12 },
-
-  primaryCta: {
-    borderWidth: 1,
-    borderColor: "rgba(170, 220, 255, 0.35)",
-    backgroundColor: "rgba(170, 220, 255, 0.12)",
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    alignItems: "center" as const,
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
-  },
-  primaryCtaText: { color: "rgba(255,255,255,0.92)", fontWeight: "900" as const, fontSize: 15, letterSpacing: 0.2 },
-  primaryCtaSub: { marginTop: 6, color: "rgba(255,255,255,0.55)", fontSize: 12 },
-};
